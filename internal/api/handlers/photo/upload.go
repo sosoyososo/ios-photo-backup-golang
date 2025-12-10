@@ -2,6 +2,8 @@ package photo
 
 import (
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -89,10 +91,26 @@ func UploadHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage
 			return
 		}
 
+		// Extract file extension from uploaded filename
+		uploadedFilename := fileHeader.Filename
+		ext := strings.ToLower(filepath.Ext(uploadedFilename))
+		if ext == "" {
+			appLogger.Warn("Photo upload missing file extension",
+				logger.Uint("user_id", userID),
+				logger.String("local_id", localID),
+				logger.String("filename", uploadedFilename))
+			errors.BadRequest(c, "File must have an extension", nil)
+			return
+		}
+		// Remove the dot from extension (e.g., ".jpg" -> "jpg")
+		ext = ext[1:]
+
 		appLogger.Info("Uploading photo",
 			logger.Uint("user_id", userID),
 			logger.String("local_id", localID),
 			logger.String("file_type", fileType),
+			logger.String("file_extension", ext),
+			logger.String("uploaded_filename", uploadedFilename),
 			logger.Int("file_size", int(fileHeader.Size)))
 
 		// Open file
@@ -118,8 +136,8 @@ func UploadHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage
 			return
 		}
 
-		// Upload photo
-		if err := photoService.UploadPhoto(userID, localID, fileType, fileData); err != nil {
+		// Upload photo with extension
+		if err := photoService.UploadPhoto(userID, localID, ext, fileType, fileData); err != nil {
 			appLogger.Error("Photo upload failed",
 				logger.Uint("user_id", userID),
 				logger.String("local_id", localID),
@@ -130,14 +148,26 @@ func UploadHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage
 
 		appLogger.PhotoOperation("upload", localID, localID, userID, true)
 
-		// Get photo info to return filename
-		// This is a simplified approach - in production, you'd get this from the service
-		// For now, just return the local_id
-		c.JSON(http.StatusOK, gin.H{
-			"status":   "success",
-			"message":  "File uploaded",
-			"local_id": localID,
-			"filename": localID, // Placeholder
-		})
+		// Return success with filename
+		// Build the expected filename from the indexed photo
+		photo, err := photoRepo.FindByLocalID(localID)
+		if err == nil && photo != nil {
+			// Return the actual filename with extension
+			c.JSON(http.StatusOK, gin.H{
+				"status":    "success",
+				"message":   "File uploaded",
+				"local_id":  localID,
+				"filename":  photo.FileName + "." + ext,
+				"file_path": photo.FilePath + photo.FileName + "." + ext,
+			})
+		} else {
+			// Fallback if we can't get photo info
+			c.JSON(http.StatusOK, gin.H{
+				"status":   "success",
+				"message":  "File uploaded",
+				"local_id": localID,
+				"filename": localID + "." + ext,
+			})
+		}
 	}
 }

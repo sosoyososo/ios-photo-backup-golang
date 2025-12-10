@@ -2,6 +2,7 @@ package repository
 
 import (
 	"fmt"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -93,8 +94,10 @@ func (r *PhotoRepository) GetCountByDate(date string) (int, error) {
 	if err := r.ensureTableExists(); err != nil {
 		return 0, err
 	}
+	// Convert date format from YYYY-MM-DD to YYYY/MM/DD to match file_path structure
+	dateForPath := strings.ReplaceAll(date, "-", "/")
 	var count int64
-	if err := r.db.Table(r.tableName).Where("file_path LIKE ?", "%"+date+"%").Count(&count).Error; err != nil {
+	if err := r.db.Table(r.tableName).Where("file_path LIKE ?", "%"+dateForPath+"%").Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to count photos by date: %w", err)
 	}
 	return int(count), nil
