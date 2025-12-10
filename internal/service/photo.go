@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/ios-photo-backup/photo-backup-server/internal/models"
@@ -87,15 +88,26 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 
 		if existingPhoto != nil {
 			// Photo already exists, keep existing filename
-			responses = append(responses, PhotoIndexResponse{
-				LocalID:  photo.LocalID,
-				Filename: existingPhoto.FileName,
-			})
+			// Extract extension from existing filename if present
+			existingFilename := existingPhoto.FileName
+			if idx := strings.LastIndex(existingFilename, "."); idx > 0 {
+				// Extension in DB, include it in response
+				responses = append(responses, PhotoIndexResponse{
+					LocalID:  photo.LocalID,
+					Filename: existingFilename,
+				})
+			} else {
+				// No extension in DB, add it from request
+				responses = append(responses, PhotoIndexResponse{
+					LocalID:  photo.LocalID,
+					Filename: existingFilename + "." + photo.FileExtension,
+				})
+			}
 			continue
 		}
 
-		// Generate filename
-		filename := s.naming.GenerateFilename(photo.FileExtension, nextSequence)
+		// Generate filename (without extension)
+		filename := s.naming.GenerateFilename(nextSequence)
 		nextSequence++
 
 		// Create photo record
@@ -104,7 +116,6 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 			CreationTime:  photo.CreationTime,
 			FilePath:      dirPath,
 			FileName:      filename,
-			FileExtension: photo.FileExtension,
 			FileType:      photo.FileType,
 			FileCount:     0,
 		}
@@ -114,9 +125,10 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 			return nil, fmt.Errorf("failed to create photo record: %w", err)
 		}
 
+		// Response includes extension for client to use
 		responses = append(responses, PhotoIndexResponse{
 			LocalID:  photo.LocalID,
-			Filename: filename,
+			Filename: filename + "." + photo.FileExtension,
 		})
 	}
 
@@ -124,7 +136,7 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 }
 
 // UploadPhoto uploads a photo file
-func (s *PhotoService) UploadPhoto(userID uint, localID, fileType string, fileData []byte) error {
+func (s *PhotoService) UploadPhoto(userID uint, localID, fileExtension, fileType string, fileData []byte) error {
 	// Find photo record
 	photo, err := s.photoRepo.FindByLocalID(localID)
 	if err != nil {
@@ -134,8 +146,8 @@ func (s *PhotoService) UploadPhoto(userID uint, localID, fileType string, fileDa
 		return fmt.Errorf("photo not found")
 	}
 
-	// Build full file path
-	fullPath := photo.FilePath + photo.FileName
+	// Build full file path with extension
+	fullPath := photo.FilePath + photo.FileName + "." + fileExtension
 
 	// Check if file already exists
 	exists, err := s.fileStorage.FileExists(fullPath)

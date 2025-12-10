@@ -16,13 +16,13 @@ func NewPhotoNaming() *PhotoNaming {
 }
 
 // GenerateFilename generates a sequential filename for a photo
-// Format: IMG_XXXX.ext where XXXX is a 4-digit zero-padded number
-func (n *PhotoNaming) GenerateFilename(extension string, sequenceNumber int) string {
-	// Format: IMG_XXXX.ext (4-digit zero-padded)
+// Format: IMG_XXXX where XXXX is a 4-digit zero-padded number (without extension)
+func (n *PhotoNaming) GenerateFilename(sequenceNumber int) string {
+	// Format: IMG_XXXX (4-digit zero-padded, no extension)
 	sequence := strconv.Itoa(sequenceNumber)
 	paddedSequence := strings.Repeat("0", 4-len(sequence)) + sequence
 
-	return fmt.Sprintf("IMG_%s.%s", paddedSequence, extension)
+	return fmt.Sprintf("IMG_%s", paddedSequence)
 }
 
 // ParseDate parses a date string in YYYY-MM-DD format
