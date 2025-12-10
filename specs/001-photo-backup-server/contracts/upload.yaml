@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: Photo Backup Server - Photo Upload API
+  version: 1.0.0
+  description: Upload photo files
+
+paths:
+  /photos/upload:
+    post:
+      summary: Upload photo
+      tags: [Photos]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - local_id
+                - file
+                - file_type
+              properties:
+                local_id:
+                  type: string
+                  description: Client-side photo identifier (from index API)
+                  example: "IMG_1234"
+                file:
+                  type: string
+                  format: binary
+                  description: Photo file data
+                file_type:
+                  type: string
+                  description: MIME type
+                  example: "image/jpeg"
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  message:
+                    type: string
+                    example: "File uploaded"
+                  local_id:
+                    type: string
+                    description: Photo identifier
+                    example: "IMG_1234"
+                  filename:
+                    type: string
+                    description: Stored filename
+                    example: "IMG_0001.jpg"
+        '400':
+          $ref: './errors.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './errors.yaml#/components/responses/Unauthorized'
+        '404':
+          $ref: './errors.yaml#/components/responses/NotFound'
+        '500':
+          $ref: './errors.yaml#/components/responses/InternalServerError'

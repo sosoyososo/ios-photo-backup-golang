@@ -1,0 +1,52 @@
+openapi: 3.0.3
+info:
+  title: Photo Backup Server - Login API
+  version: 1.0.0
+  description: Authenticate user and receive JWT token
+
+paths:
+  /login:
+    post:
+      summary: User login
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                  description: User's username
+                  example: "johndoe"
+                password:
+                  type: string
+                  description: User's password (minimum 8 characters)
+                  example: "password123"
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT token for authenticated requests
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: Token expiration timestamp
+                    example: "2025-12-17T12:00:00Z"
+        '400':
+          $ref: './errors.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './errors.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: './errors.yaml#/components/responses/InternalServerError'

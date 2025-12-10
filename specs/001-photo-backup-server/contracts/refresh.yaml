@@ -1,0 +1,41 @@
+openapi: 3.0.3
+info:
+  title: Photo Backup Server - Token Refresh API
+  version: 1.0.0
+  description: Refresh JWT token
+
+paths:
+  /refresh:
+    post:
+      summary: Refresh JWT token
+      tags: [Authentication]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              example: {}
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: New JWT token
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  expires_at:
+                    type: string
+                    format: date-time
+                    description: New token expiration timestamp
+                    example: "2025-12-17T12:00:00Z"
+        '401':
+          $ref: './errors.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: './errors.yaml#/components/responses/InternalServerError'

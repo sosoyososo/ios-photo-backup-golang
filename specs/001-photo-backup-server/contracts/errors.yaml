@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: Photo Backup Server - Error Responses
+  version: 1.0.0
+  description: Standardized error response format
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid input
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "bad_request"
+              message:
+                type: string
+                example: "Invalid input parameters"
+              details:
+                type: object
+                example: {}
+              timestamp:
+                type: string
+                format: date-time
+                example: "2025-12-10T12:00:00Z"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "unauthorized"
+              message:
+                type: string
+                example: "Invalid or expired token"
+              details:
+                type: object
+                example: {}
+              timestamp:
+                type: string
+                format: date-time
+                example: "2025-12-10T12:00:00Z"
+
+    NotFound:
+      description: Not found - resource doesn't exist
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "not_found"
+              message:
+                type: string
+                example: "Resource not found"
+              details:
+                type: object
+                example: {}
+              timestamp:
+                type: string
+                format: date-time
+                example: "2025-12-10T12:00:00Z"
+
+    Conflict:
+      description: Conflict - data conflict (e.g., orphaned files)
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "conflict"
+              message:
+                type: string
+                example: "Orphaned files detected in storage directory"
+              details:
+                type: object
+                example: {}
+              timestamp:
+                type: string
+                format: date-time
+                example: "2025-12-10T12:00:00Z"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+                example: "internal_error"
+              message:
+                type: string
+                example: "An unexpected error occurred"
+              details:
+                type: object
+                example: {}
+              timestamp:
+                type: string
+                format: date-time
+                example: "2025-12-10T12:00:00Z"

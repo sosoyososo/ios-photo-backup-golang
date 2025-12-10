@@ -1,0 +1,92 @@
+openapi: 3.0.3
+info:
+  title: Photo Backup Server - Photo Index API
+  version: 1.0.0
+  description: Index photos for upload (pre-assign filenames)
+
+paths:
+  /photos/index:
+    post:
+      summary: Index photos
+      tags: [Photos]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - date
+                - photos
+              properties:
+                date:
+                  type: string
+                  format: date
+                  description: Calendar date for photo batch
+                  example: "2025-01-15"
+                photos:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - local_id
+                      - creation_time
+                      - file_extension
+                      - file_type
+                    properties:
+                      local_id:
+                        type: string
+                        description: Client-side photo identifier
+                        example: "IMG_1234"
+                      creation_time:
+                        type: string
+                        format: date-time
+                        description: Photo creation timestamp
+                        example: "2025-01-15T10:30:00Z"
+                      file_extension:
+                        type: string
+                        description: File extension without dot
+                        example: "jpg"
+                      file_type:
+                        type: string
+                        description: MIME type
+                        example: "image/jpeg"
+      responses:
+        '200':
+          description: Photos indexed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "success"
+                  date:
+                    type: string
+                    format: date
+                    description: Indexed date
+                    example: "2025-01-15"
+                  assigned_files:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        local_id:
+                          type: string
+                          description: Client-side photo identifier
+                          example: "IMG_1234"
+                        filename:
+                          type: string
+                          description: Assigned filename
+                          example: "IMG_0001.jpg"
+        '400':
+          $ref: './errors.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './errors.yaml#/components/responses/Unauthorized'
+        '409':
+          $ref: './errors.yaml#/components/responses/Conflict'
+        '500':
+          $ref: './errors.yaml#/components/responses/InternalServerError'

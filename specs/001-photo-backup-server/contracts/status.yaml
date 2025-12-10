@@ -1,0 +1,36 @@
+openapi: 3.0.3
+info:
+  title: Photo Backup Server - Status API
+  version: 1.0.0
+  description: Check authentication status
+
+paths:
+  /status:
+    get:
+      summary: Check online status
+      tags: [User]
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User is authenticated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "online"
+                  user_id:
+                    type: integer
+                    description: Authenticated user's ID
+                    example: 123
+                  username:
+                    type: string
+                    description: Authenticated user's username
+                    example: "johndoe"
+        '401':
+          $ref: './errors.yaml#/components/responses/Unauthorized'
+        '500':
+          $ref: './errors.yaml#/components/responses/InternalServerError'
