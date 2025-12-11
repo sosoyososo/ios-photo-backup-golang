@@ -43,8 +43,9 @@ type PhotoIndexRequest struct {
 
 // PhotoIndexResponse represents a photo indexing response
 type PhotoIndexResponse struct {
-	LocalID  string `json:"local_id"`
-	Filename string `json:"filename"`
+	LocalID             string   `json:"local_id"`
+	Filename            string   `json:"filename"`
+	UploadedExtensions  []string `json:"uploaded_extensions"`
 }
 
 // IndexPhotos indexes a batch of photos and assigns filenames
@@ -86,6 +87,12 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 			return nil, fmt.Errorf("failed to check existing photo: %w", err)
 		}
 
+		// Get uploaded extensions for this photo
+		uploadedExtensions, err := s.photoRepo.GetUploadedExtensions(photo.LocalID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get uploaded extensions: %w", err)
+		}
+
 		if existingPhoto != nil {
 			// Photo already exists, keep existing filename
 			// Extract extension from existing filename if present
@@ -93,14 +100,16 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 			if idx := strings.LastIndex(existingFilename, "."); idx > 0 {
 				// Extension in DB, include it in response
 				responses = append(responses, PhotoIndexResponse{
-					LocalID:  photo.LocalID,
-					Filename: existingFilename,
+					LocalID:             photo.LocalID,
+					Filename:            existingFilename,
+					UploadedExtensions:  uploadedExtensions,
 				})
 			} else {
 				// No extension in DB, add it from request
 				responses = append(responses, PhotoIndexResponse{
-					LocalID:  photo.LocalID,
-					Filename: existingFilename + "." + photo.FileExtension,
+					LocalID:             photo.LocalID,
+					Filename:            existingFilename + "." + photo.FileExtension,
+					UploadedExtensions:  uploadedExtensions,
 				})
 			}
 			continue
@@ -127,8 +136,9 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 
 		// Response includes extension for client to use
 		responses = append(responses, PhotoIndexResponse{
-			LocalID:  photo.LocalID,
-			Filename: filename + "." + photo.FileExtension,
+			LocalID:             photo.LocalID,
+			Filename:            filename + "." + photo.FileExtension,
+			UploadedExtensions:  uploadedExtensions,
 		})
 	}
 
@@ -149,33 +159,14 @@ func (s *PhotoService) UploadPhoto(userID uint, localID, fileExtension, fileType
 	// Build full file path with extension
 	fullPath := photo.FilePath + photo.FileName + "." + fileExtension
 
-	// Check if file already exists
-	exists, err := s.fileStorage.FileExists(fullPath)
-	if err != nil {
-		return fmt.Errorf("failed to check file existence: %w", err)
-	}
-
-	if exists {
-		// File exists, check if complete (placeholder - actual implementation would verify integrity)
-		size, err := s.fileStorage.GetFileSize(fullPath)
-		if err != nil {
-			return fmt.Errorf("failed to get file size: %w", err)
-		}
-
-		// If file seems complete, skip upload
-		if size > 0 && size == int64(len(fileData)) {
-			return nil
-		}
-
-		// File is incomplete, delete and re-upload
-		if err := s.fileStorage.DeleteFile(fullPath); err != nil {
-			return fmt.Errorf("failed to delete incomplete file: %w", err)
-		}
-	}
-
-	// Save file
+	// Save file (always overwrites if exists)
 	if err := s.fileStorage.SaveFile(fullPath, fileData); err != nil {
 		return fmt.Errorf("failed to save file: %w", err)
+	}
+
+	// Add extension to tracking list
+	if err := s.photoRepo.AddUploadedExtension(localID, fileExtension); err != nil {
+		return fmt.Errorf("failed to update extension list: %w", err)
 	}
 
 	// Update file count

@@ -26,6 +26,9 @@ A production-ready, dual-mode photo backup server built with Go, featuring a RES
 - **Sequential Naming**: Automatic filename generation (IMG_0001.jpg, IMG_0002.jpg, etc.)
 - **Per-User Storage**: Isolated storage with dynamic database tables
 - **File Organization**: Photos organized by date (YYYY/MM/DD structure)
+- **Extension Tracking**: Track multiple file formats per photo (e.g., HEIC + JPEG)
+- **Overwrite Support**: Always overwrite files on re-upload (ensures latest version)
+- **Upload Status**: View which formats have been uploaded via Index API response
 
 ### 🏗️ Production-Ready
 - Structured JSON logging
@@ -192,15 +195,19 @@ Response:
   "assigned_files": [
     {
       "local_id": "IMG_1234",
-      "filename": "IMG_0001.jpg"
+      "filename": "IMG_0001.jpg",
+      "uploaded_extensions": ["jpg"]
     },
     {
       "local_id": "IMG_1235",
-      "filename": "IMG_0002.jpg"
+      "filename": "IMG_0002.jpg",
+      "uploaded_extensions": []
     }
   ]
 }
 ```
+
+**Note**: The `uploaded_extensions` field shows which file formats have been uploaded for each photo. An empty array `[]` means no files uploaded yet.
 
 **Upload Photo**
 ```bash
@@ -349,9 +356,9 @@ CREATE TABLE photos_user_<user_id> (
     creation_time TIMESTAMP,
     file_path VARCHAR(255),
     file_name VARCHAR(255),
-    file_extension VARCHAR(10),
     file_type VARCHAR(50),
     file_count INTEGER DEFAULT 0,
+    uploaded_extensions TEXT DEFAULT '[]',  -- NEW: JSON array of uploaded extensions
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
@@ -551,6 +558,28 @@ For issues and questions:
 - Check existing documentation
 - Review log files for errors
 
+## 📋 Changelog
+
+### Version 1.0.0 (2025-12-11)
+
+#### ✨ New Features
+- **Extension Tracking**: Track multiple file formats per photo (e.g., HEIC + JPEG)
+- **Upload Status**: View which formats have been uploaded via Index API response
+- **Overwrite Support**: Files are always overwritten on re-upload (ensures latest version)
+- **Database Schema**: Added `uploaded_extensions` column to photo tables
+
+#### 📚 Documentation
+- Updated API documentation with extension tracking details
+- Added database schema documentation
+- Added upload behavior documentation
+
+#### 🔧 Technical Details
+- Storage format: JSON array of extensions (e.g., `["jpg","heic"]`)
+- Backward compatible: Existing photo records get default empty array
+- GORM AutoMigrate handles schema updates automatically
+
+---
+
 ## 🗺️ Roadmap
 
 ### Upcoming Features
@@ -568,4 +597,4 @@ For issues and questions:
 ---
 
 **Version**: 1.0.0
-**Last Updated**: 2025-12-10
+**Last Updated**: 2025-12-11

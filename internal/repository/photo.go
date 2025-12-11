@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -26,16 +27,13 @@ func NewPhotoRepository(db *gorm.DB, userID uint) *PhotoRepository {
 	}
 }
 
-// ensureTableExists creates the photo table if it doesn't exist
+// ensureTableExists creates the photo table if it doesn't exist and migrates schema if needed
 func (r *PhotoRepository) ensureTableExists() error {
-	// Check if table exists
-	var count int64
-	r.db.Raw("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", r.tableName).Scan(&count)
-	if count == 0 {
-		// Create table
-		if err := r.db.Table(r.tableName).AutoMigrate(&models.Photo{}); err != nil {
-			return fmt.Errorf("failed to create photo table: %w", err)
-		}
+	// Always run AutoMigrate to ensure table exists and has all columns
+	// GORM's AutoMigrate will create the table if it doesn't exist,
+	// and add missing columns if the table already exists
+	if err := r.db.Table(r.tableName).AutoMigrate(&models.Photo{}); err != nil {
+		return fmt.Errorf("failed to migrate photo table: %w", err)
 	}
 	return nil
 }
@@ -135,4 +133,64 @@ func (r *PhotoRepository) GetLocalIDs(date string) ([]string, error) {
 		return nil, fmt.Errorf("failed to get local IDs: %w", err)
 	}
 	return localIDs, nil
+}
+
+// GetUploadedExtensions returns the list of uploaded extensions for a photo
+func (r *PhotoRepository) GetUploadedExtensions(localID string) ([]string, error) {
+	if err := r.ensureTableExists(); err != nil {
+		return nil, err
+	}
+	var photo models.Photo
+	if err := r.db.Table(r.tableName).Where("local_id = ?", localID).First(&photo).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get photo: %w", err)
+	}
+
+	// Parse JSON array from uploaded_extensions field
+	extensions := make([]string, 0)
+	if photo.UploadedExtensions != "" && photo.UploadedExtensions != "[]" {
+		if err := json.Unmarshal([]byte(photo.UploadedExtensions), &extensions); err != nil {
+			return nil, fmt.Errorf("failed to parse uploaded extensions: %w", err)
+		}
+	}
+	return extensions, nil
+}
+
+// AddUploadedExtension adds an extension to the uploaded extensions list if not already present
+func (r *PhotoRepository) AddUploadedExtension(localID string, extension string) error {
+	if err := r.ensureTableExists(); err != nil {
+		return err
+	}
+
+	// Get current extensions
+	extensions, err := r.GetUploadedExtensions(localID)
+	if err != nil {
+		return err
+	}
+
+	// Check if extension already exists
+	for _, ext := range extensions {
+		if ext == extension {
+			// Extension already exists, no need to update
+			return nil
+		}
+	}
+
+	// Add new extension
+	extensions = append(extensions, extension)
+
+	// Marshal back to JSON
+	extensionsJSON, err := json.Marshal(extensions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal extensions: %w", err)
+	}
+
+	// Update database
+	if err := r.db.Table(r.tableName).Where("local_id = ?", localID).Update("uploaded_extensions", string(extensionsJSON)).Error; err != nil {
+		return fmt.Errorf("failed to update uploaded extensions: %w", err)
+	}
+
+	return nil
 }

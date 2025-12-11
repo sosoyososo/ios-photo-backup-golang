@@ -261,15 +261,23 @@ curl -X POST http://localhost:8080/photos/index \
   "assigned_files": [
     {
       "local_id": "IMG_1234",
-      "filename": "IMG_0001.jpg"
+      "filename": "IMG_0001.jpg",
+      "uploaded_extensions": ["jpg"]
     },
     {
       "local_id": "IMG_1235",
-      "filename": "IMG_0002.jpg"
+      "filename": "IMG_0002.jpg",
+      "uploaded_extensions": []
     }
   ]
 }
 ```
+
+**Response Fields**:
+- `uploaded_extensions` (array): List of file extensions that have been uploaded for this photo
+  - `[]` - No files uploaded yet
+  - `["jpg"]` - Only JPEG uploaded
+  - `["heic", "jpg"]` - Both HEIC and JPEG uploaded
 
 **Filename Generation Rules**:
 - Format: `IMG_XXXX.ext` where XXXX is a 4-digit zero-padded number
@@ -317,6 +325,11 @@ Content-Type: multipart/form-data
 - `local_id` (string, required): Must match a local_id from indexing
 - `file_type` (string, required): MIME type (e.g., 'image/jpeg')
 - `file` (file, required): Photo file (max 50MB)
+
+**Upload Behavior**:
+- **Overwrite**: Files are always overwritten if they already exist (ensures latest version)
+- **Extension Tracking**: Uploaded extensions are tracked and can be viewed in Index API response
+- **Multiple Formats**: Same photo can have multiple formats uploaded (e.g., HEIC + JPEG)
 
 **Example Request**:
 ```bash
@@ -588,6 +601,55 @@ await fetch('http://localhost:8080/photos/upload', {
 
 ---
 
+## Database Schema
+
+### Photo Table Structure
+
+**Table Name**: `photos_user_<user_id>` (dynamic per user)
+
+**Columns**:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `local_id` | TEXT (PRIMARY KEY) | Client-side unique identifier |
+| `creation_time` | DATETIME | When photo was taken |
+| `file_path` | TEXT | Directory path (e.g., `storage/photo/1/2025/01/15/`) |
+| `file_name` | TEXT | Filename without extension (e.g., `IMG_0001`) |
+| `file_type` | TEXT | MIME type (e.g., `image/jpeg`) |
+| `file_count` | INTEGER | Number of files uploaded (default: 0) |
+| `uploaded_extensions` | TEXT | **NEW**: JSON array of uploaded extensions (e.g., `["jpg","heic"]`) |
+| `created_at` | DATETIME | Record creation time |
+| `updated_at` | DATETIME | Record last update time |
+| `deleted_at` | DATETIME | Soft delete support |
+
+**Example Record**:
+```json
+{
+  "local_id": "IMG_001",
+  "creation_time": "2025-01-15T10:30:00Z",
+  "file_path": "storage/photo/1/2025/01/15/",
+  "file_name": "IMG_0001",
+  "file_type": "image/jpeg",
+  "file_count": 2,
+  "uploaded_extensions": "[\"jpg\",\"heic\"]",
+  "created_at": "2025-01-15T10:00:00Z",
+  "updated_at": "2025-01-15T10:35:00Z"
+}
+```
+
+### Extension Tracking
+
+The `uploaded_extensions` field stores a JSON array of file extensions that have been successfully uploaded for each photo:
+
+- `[]` - No files uploaded yet
+- `["jpg"]` - Only JPEG uploaded
+- `["heic","jpg"]` - Both HEIC and JPEG uploaded
+
+**File Path Format**: `{file_path}{file_name}.{extension}`
+**Example**: `storage/photo/1/2025/01/15/IMG_0001.jpg`
+
+---
+
 ## Testing
 
 ### Unit Tests
@@ -613,4 +675,12 @@ For API-related questions:
 ---
 
 **API Version**: 1.0.0
-**Last Updated**: 2025-12-10
+**Last Updated**: 2025-12-11
+
+**Changelog**:
+
+### Version 1.0.0 (2025-12-11)
+- **NEW**: Extension tracking support - Track multiple file formats per photo
+- **NEW**: Upload status in Index API response via `uploaded_extensions` field
+- **NEW**: Overwrite behavior - Files are always overwritten on re-upload
+- **NEW**: Database schema updated with `uploaded_extensions` column
