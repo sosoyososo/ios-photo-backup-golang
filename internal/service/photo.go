@@ -36,7 +36,7 @@ func NewPhotoService(
 type PhotoIndexRequest struct {
 	LocalID       string    `json:"local_id"`
 	CreationTime  time.Time `json:"creation_time"`
-	FileType      string    `json:"file_type"`
+	FileType      string    `json:"file_type"` // File extension (e.g., "jpg", "heic", "png")
 }
 
 // PhotoIndexResponse represents a photo indexing response

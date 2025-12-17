@@ -2,7 +2,6 @@ package photo
 
 import (
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -91,26 +90,24 @@ func UploadHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage
 			return
 		}
 
-		// Extract file extension from uploaded filename
-		uploadedFilename := fileHeader.Filename
-		ext := strings.ToLower(filepath.Ext(uploadedFilename))
+		// Use file_type as the file extension
+		// file_type should be the extension (e.g., "jpg", "heic", "png")
+		ext := strings.ToLower(fileType)
 		if ext == "" {
 			appLogger.Warn("Photo upload missing file extension",
 				logger.Uint("user_id", userID),
 				logger.String("local_id", localID),
-				logger.String("filename", uploadedFilename))
-			errors.BadRequest(c, "File must have an extension", nil)
+				logger.String("file_type", fileType))
+			errors.BadRequest(c, "file_type is required", nil)
 			return
 		}
-		// Remove the dot from extension (e.g., ".jpg" -> "jpg")
-		ext = ext[1:]
 
 		appLogger.Info("Uploading photo",
 			logger.Uint("user_id", userID),
 			logger.String("local_id", localID),
 			logger.String("file_type", fileType),
 			logger.String("file_extension", ext),
-			logger.String("uploaded_filename", uploadedFilename),
+			logger.String("uploaded_filename", fileHeader.Filename),
 			logger.Int("file_size", int(fileHeader.Size)))
 
 		// Open file

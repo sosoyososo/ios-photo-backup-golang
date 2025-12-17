@@ -24,12 +24,12 @@ Content-Type: application/json
     {
       "local_id": "unique_identifier_1",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_type": "image/jpeg"
+      "file_type": "jpg"
     },
     {
       "local_id": "unique_identifier_2",
       "creation_time": "2025-01-15T10:31:00Z",
-      "file_type": "image/heic"
+      "file_type": "heic"
     }
   ]
 }
@@ -43,7 +43,7 @@ Content-Type: application/json
 | `photos` | array | Yes | List of photos to index |
 | `photos[].local_id` | string | Yes | Client-side unique identifier |
 | `photos[].creation_time` | string | Yes | ISO 8601 timestamp |
-| `photos[].file_type` | string | Yes | MIME type |
+| `photos[].file_type` | string | Yes | File extension (e.g., "jpg", "heic", "png") |
 
 ## Response
 
@@ -131,7 +131,7 @@ Content-Type: application/json
     {
       "local_id": "IMG_001",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_type": "image/jpeg"
+      "file_type": "jpg"
     }
   ]
 }
@@ -161,7 +161,7 @@ Content-Type: application/json
     {
       "local_id": "IMG_001",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_type": "image/jpeg"
+      "file_type": "jpg"
     }
   ]
 }
@@ -191,7 +191,7 @@ Content-Type: application/json
     {
       "local_id": "IMG_001",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_type": "image/jpeg"
+      "file_type": "jpg"
     }
   ]
 }

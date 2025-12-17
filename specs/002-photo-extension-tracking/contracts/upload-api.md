@@ -21,7 +21,7 @@ Content-Type: multipart/form-data
 |-------|------|----------|-------------|
 | `file` | file | Yes | The photo file to upload (max 50MB) |
 | `local_id` | string | Yes | The local_id from index response |
-| `file_type` | string | Yes | MIME type of the file |
+| `file_type` | string | Yes | File extension (e.g., "jpg", "heic", "png") |
 
 ### Example
 
@@ -31,7 +31,7 @@ Authorization: Bearer eyJhbGciOi...
 
 file: [binary data]
 local_id: IMG_001
-file_type: image/jpeg
+file_type: jpg
 ```
 
 ## Response
@@ -168,7 +168,7 @@ The uploaded extension is added to the `uploaded_extensions` JSON array in the p
 POST /photos/upload
 file: [binary jpg data]
 local_id: IMG_001
-file_type: image/jpeg
+file_type: jpg
 ```
 
 **Response**:
@@ -193,7 +193,7 @@ file_type: image/jpeg
 POST /photos/upload
 file: [binary heic data]
 local_id: IMG_001
-file_type: image/heic
+file_type: heic
 ```
 
 **Response**:
@@ -218,7 +218,7 @@ file_type: image/heic
 POST /photos/upload
 file: [binary jpg data - updated version]
 local_id: IMG_001
-file_type: image/jpeg
+file_type: jpg
 ```
 
 **Response**:

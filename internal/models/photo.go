@@ -13,7 +13,7 @@ type Photo struct {
 	CreationTime       time.Time      `json:"creation_time" gorm:"not null;index"`
 	FilePath           string         `json:"file_path" gorm:"not null;index"`
 	FileName           string         `json:"file_name" gorm:"not null;size:255"`
-	FileType           string         `json:"file_type" gorm:"not null;size:50"`
+	FileType           string         `json:"file_type" gorm:"not null;size:50"` // File extension (e.g., "jpg", "heic", "png")
 	FileCount          int            `json:"file_count" gorm:"default:0"`
 	UploadedExtensions string         `json:"uploaded_extensions" gorm:"type:text;default:'[]'"`
 	CreatedAt          time.Time      `json:"created_at"`
