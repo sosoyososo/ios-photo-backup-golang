@@ -5,7 +5,7 @@
 
 ## Overview
 
-Indexes a batch of photos and assigns sequential filenames. Returns the list of assigned files with uploaded extensions for each photo.
+Indexes a batch of photos and assigns sequential filenames. Returns the list of indexed photos with uploaded extensions for each photo.
 
 ## Request
 
@@ -24,13 +24,11 @@ Content-Type: application/json
     {
       "local_id": "unique_identifier_1",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_extension": "jpg",
       "file_type": "image/jpeg"
     },
     {
       "local_id": "unique_identifier_2",
       "creation_time": "2025-01-15T10:31:00Z",
-      "file_extension": "heic",
       "file_type": "image/heic"
     }
   ]
@@ -45,7 +43,6 @@ Content-Type: application/json
 | `photos` | array | Yes | List of photos to index |
 | `photos[].local_id` | string | Yes | Client-side unique identifier |
 | `photos[].creation_time` | string | Yes | ISO 8601 timestamp |
-| `photos[].file_extension` | string | Yes | File extension (jpg, png, heic, etc.) |
 | `photos[].file_type` | string | Yes | MIME type |
 
 ## Response
@@ -59,12 +56,10 @@ Content-Type: application/json
   "assigned_files": [
     {
       "local_id": "unique_identifier_1",
-      "filename": "IMG_0001.jpg",
       "uploaded_extensions": []
     },
     {
       "local_id": "unique_identifier_2",
-      "filename": "IMG_0002.heic",
       "uploaded_extensions": []
     }
   ]
@@ -79,7 +74,6 @@ Content-Type: application/json
 | `date` | string | Echo of request date |
 | `assigned_files` | array | List of indexed photos |
 | `assigned_files[].local_id` | string | Echo of request local_id |
-| `assigned_files[].filename` | string | Assigned filename with extension |
 | `assigned_files[].uploaded_extensions` | array | **NEW**: List of uploaded extensions for this photo |
 
 ### uploaded_extensions Values
@@ -137,7 +131,6 @@ Content-Type: application/json
     {
       "local_id": "IMG_001",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_extension": "jpg",
       "file_type": "image/jpeg"
     }
   ]
@@ -152,7 +145,6 @@ Content-Type: application/json
   "assigned_files": [
     {
       "local_id": "IMG_001",
-      "filename": "IMG_0001.jpg",
       "uploaded_extensions": []
     }
   ]
@@ -169,7 +161,6 @@ Content-Type: application/json
     {
       "local_id": "IMG_001",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_extension": "jpg",
       "file_type": "image/jpeg"
     }
   ]
@@ -184,7 +175,6 @@ Content-Type: application/json
   "assigned_files": [
     {
       "local_id": "IMG_001",
-      "filename": "IMG_0001.jpg",
       "uploaded_extensions": ["jpg"]
     }
   ]
@@ -201,7 +191,6 @@ Content-Type: application/json
     {
       "local_id": "IMG_001",
       "creation_time": "2025-01-15T10:30:00Z",
-      "file_extension": "jpg",
       "file_type": "image/jpeg"
     }
   ]
@@ -216,7 +205,6 @@ Content-Type: application/json
   "assigned_files": [
     {
       "local_id": "IMG_001",
-      "filename": "IMG_0001.jpg",
       "uploaded_extensions": ["heic", "jpg"]
     }
   ]
@@ -225,7 +213,5 @@ Content-Type: application/json
 
 ## Notes
 
-- Extension tracking is independent of the indexed extension
-- A photo can have uploaded files with different extensions than what was indexed
 - Empty array `[]` indicates no uploads yet
 - Extensions are tracked in order of upload, but order is not guaranteed

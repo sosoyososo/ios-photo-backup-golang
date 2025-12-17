@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/ios-photo-backup/photo-backup-server/internal/models"
@@ -37,15 +36,13 @@ func NewPhotoService(
 type PhotoIndexRequest struct {
 	LocalID       string    `json:"local_id"`
 	CreationTime  time.Time `json:"creation_time"`
-	FileExtension string    `json:"file_extension"`
 	FileType      string    `json:"file_type"`
 }
 
 // PhotoIndexResponse represents a photo indexing response
 type PhotoIndexResponse struct {
-	LocalID             string   `json:"local_id"`
-	Filename            string   `json:"filename"`
-	UploadedExtensions  []string `json:"uploaded_extensions"`
+	LocalID            string   `json:"local_id"`
+	UploadedExtensions []string `json:"uploaded_extensions"`
 }
 
 // IndexPhotos indexes a batch of photos and assigns filenames
@@ -94,24 +91,11 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 		}
 
 		if existingPhoto != nil {
-			// Photo already exists, keep existing filename
-			// Extract extension from existing filename if present
-			existingFilename := existingPhoto.FileName
-			if idx := strings.LastIndex(existingFilename, "."); idx > 0 {
-				// Extension in DB, include it in response
-				responses = append(responses, PhotoIndexResponse{
-					LocalID:             photo.LocalID,
-					Filename:            existingFilename,
-					UploadedExtensions:  uploadedExtensions,
-				})
-			} else {
-				// No extension in DB, add it from request
-				responses = append(responses, PhotoIndexResponse{
-					LocalID:             photo.LocalID,
-					Filename:            existingFilename + "." + photo.FileExtension,
-					UploadedExtensions:  uploadedExtensions,
-				})
-			}
+			// Photo already exists, return existing photo info
+			responses = append(responses, PhotoIndexResponse{
+				LocalID:            photo.LocalID,
+				UploadedExtensions: uploadedExtensions,
+			})
 			continue
 		}
 
@@ -134,11 +118,10 @@ func (s *PhotoService) IndexPhotos(userID uint, dateStr string, photos []PhotoIn
 			return nil, fmt.Errorf("failed to create photo record: %w", err)
 		}
 
-		// Response includes extension for client to use
+		// Response with uploaded extensions (empty for new photos)
 		responses = append(responses, PhotoIndexResponse{
-			LocalID:             photo.LocalID,
-			Filename:            filename + "." + photo.FileExtension,
-			UploadedExtensions:  uploadedExtensions,
+			LocalID:            photo.LocalID,
+			UploadedExtensions: uploadedExtensions,
 		})
 	}
 
