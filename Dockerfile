@@ -1,7 +1,7 @@
 # 多阶段构建 Dockerfile
-# 使用 Go 1.22 编译项目并输出二进制文件到当前目录
+# 使用 Go 1.24.0 编译项目并输出二进制文件到当前目录
 
-FROM golang:1.22 AS builder
+FROM golang:1.24.0 AS builder
 
 # 设置 Go 模块代理
 ENV GOPROXY='https://goproxy.cn'
