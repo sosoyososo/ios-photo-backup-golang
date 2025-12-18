@@ -3,6 +3,9 @@
 
 FROM golang:1.24.0 AS builder
 
+# 设置 Go 模块代理
+ENV GOPROXY='https://goproxy.cn'
+
 # 设置工作目录
 WORKDIR /app
 
