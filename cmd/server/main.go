@@ -36,6 +36,18 @@ func main() {
 	}
 	appLogger.Info("Application initialized", logger.String("storage_dir", cfg.StorageDir))
 
+	// Setup custom temp directory for multipart uploads
+	tmpDir := cfg.StorageDir + "/tmp"
+	if err := os.MkdirAll(tmpDir, 0755); err != nil {
+		appLogger.Error("Failed to create temp directory", logger.String("error", err.Error()))
+		os.Exit(1)
+	}
+	if err := os.Setenv("TMPDIR", tmpDir); err != nil {
+		appLogger.Error("Failed to set TMPDIR", logger.String("error", err.Error()))
+		os.Exit(1)
+	}
+	appLogger.Info("Custom temp directory configured", logger.String("tmp_dir", tmpDir))
+
 	// Initialize database
 	db, err := repository.InitDB(cfg.DatabasePath)
 	if err != nil {
