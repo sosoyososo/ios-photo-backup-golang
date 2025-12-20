@@ -61,6 +61,40 @@ cd ios-photo-backup-server
 ./build.sh -p linux/amd64
 ```
 
+### Building for Legacy Linux Systems (Older GLIBC)
+
+If you encounter GLIBC version errors on older Linux systems (e.g., QNAP NAS, old distributions):
+
+```
+./photo-backup-server: /lib/libc.so.6: version `GLIBC_2.28' not found
+./photo-backup-server: /lib/libc.so.6: version `GLIBC_2.33' not found
+./photo-backup-server: /lib/libc.so.6: version `GLIBC_2.32' not found
+./photo-backup-server: /lib/libc.so.6: version `GLIBC_2.34' not found
+```
+
+Use the legacy build script to create binaries compatible with older GLIBC versions:
+
+```bash
+# Make script executable (if not already)
+chmod +x oldlinux-use-glibc21-with-docker.sh
+
+# Run the legacy build script
+./oldlinux-use-glibc21-with-docker.sh
+```
+
+**Prerequisites:**
+- Docker must be installed
+- `wget` must be available
+- Internet connection for downloading Go and building
+
+This script will:
+1. Download Go 1.24.0 Linux binary
+2. Use manylinux2014 Docker image (compatible with older GLIBC)
+3. Build binaries with CGO enabled for maximum compatibility
+4. Output: `photo-backup-server` and `photo-backup-cli` in the current directory
+
+**Note:** The build uses manylinux2014 which is compatible with GLIBC 2.17+ (CentOS 7, QNAP QTS 4.5+, and other older distributions).
+
 ### Installation
 
 #### Option 1: Use Pre-built Binaries
@@ -495,6 +529,21 @@ WantedBy=multi-user.target
 ## 🐛 Troubleshooting
 
 ### Common Issues
+
+**GLIBC Version Error (Legacy Linux Systems)**
+If you see errors like:
+```
+./photo-backup-server: /lib/libc.so.6: version `GLIBC_2.28' not found
+```
+
+This occurs on older Linux systems (e.g., QNAP NAS, CentOS 7, old distributions) that don't have newer GLIBC versions.
+
+**Solution:** Build using the legacy script:
+```bash
+./oldlinux-use-glibc21-with-docker.sh
+```
+
+See the "Building for Legacy Linux Systems" section above for details.
 
 **Server won't start**
 - Check if port is already in use: `lsof -i :8080`
