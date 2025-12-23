@@ -29,9 +29,12 @@ func NewPhotoRepository(db *gorm.DB, userID uint) *PhotoRepository {
 
 // ensureTableExists creates the photo table if it doesn't exist and migrates schema if needed
 func (r *PhotoRepository) ensureTableExists() error {
-	// Always run AutoMigrate to ensure table exists and has all columns
-	// GORM's AutoMigrate will create the table if it doesn't exist,
-	// and add missing columns if the table already exists
+	// Check if table already exists
+	if r.db.Migrator().HasTable(r.tableName) {
+		return nil
+	}
+
+	// Create the table with the custom name
 	if err := r.db.Table(r.tableName).AutoMigrate(&models.Photo{}); err != nil {
 		return fmt.Errorf("failed to migrate photo table: %w", err)
 	}
