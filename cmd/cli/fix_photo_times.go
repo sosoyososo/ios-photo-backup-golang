@@ -12,6 +12,12 @@ import (
 	"github.com/ios-photo-backup/photo-backup-server/internal/repository"
 )
 
+var (
+	dryRun     bool
+	storageDir string
+	userID     uint
+)
+
 var fixPhotoTimesCmd = &cobra.Command{
 	Use:   "fix-photo-times",
 	Short: "Fix file timestamps based on photo creation time",
@@ -19,15 +25,12 @@ var fixPhotoTimesCmd = &cobra.Command{
 	Run:   runFixPhotoTimes,
 }
 
-var (
-	dryRun     bool
-	storageDir string
-)
-
 func init() {
 	fixPhotoTimesCmd.Flags().BoolVar(&dryRun, "dry-run", false, "Show what would be done without making changes")
 	fixPhotoTimesCmd.Flags().StringVar(&storageDir, "storage-dir", "", "Storage directory path (required)")
+	fixPhotoTimesCmd.Flags().UintVar(&userID, "user-id", 0, "User ID (required)")
 	fixPhotoTimesCmd.MarkFlagRequired("storage-dir")
+	fixPhotoTimesCmd.MarkFlagRequired("user-id")
 	rootCmd.AddCommand(fixPhotoTimesCmd)
 }
 
@@ -39,16 +42,10 @@ func runFixPhotoTimes(cmd *cobra.Command, args []string) {
 		os.Exit(1)
 	}
 
-	// Get user ID from args
-	if len(args) < 1 {
+	// Validate user ID
+	if userID == 0 {
 		fmt.Fprintf(os.Stderr, "Error: user ID is required\n")
 		cmd.Usage()
-		os.Exit(1)
-	}
-
-	var userID uint
-	if _, err := fmt.Sscanf(args[0], "%d", &userID); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: invalid user ID: %v\n", err)
 		os.Exit(1)
 	}
 

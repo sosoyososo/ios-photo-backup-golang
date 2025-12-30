@@ -8,7 +8,7 @@ else
     wget -O "$GO_TAR" "https://go.dev/dl/go1.24.0.linux-amd64.tar.gz"
 fi
 
-docker run --rm -v /share/Download/photobk:/app -w /app quay.io/pypa/manylinux2014_x86_64 bash -c '
+docker run --rm -v "$(pwd):/app" -w /app quay.io/pypa/manylinux2014_x86_64 bash -c '
   set -e
   tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
   export PATH=/usr/local/go/bin:$PATH
