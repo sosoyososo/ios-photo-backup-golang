@@ -147,6 +147,11 @@ func (s *PhotoService) UploadPhoto(userID uint, localID, fileExtension, fileType
 		return fmt.Errorf("failed to save file: %w", err)
 	}
 
+	// Set file timestamps using photo's creation time
+	if err := s.fileStorage.SetFileTimes(fullPath, photo.CreationTime, photo.CreationTime); err != nil {
+		return fmt.Errorf("failed to set file times: %w", err)
+	}
+
 	// Add extension to tracking list
 	if err := s.photoRepo.AddUploadedExtension(localID, fileExtension); err != nil {
 		return fmt.Errorf("failed to update extension list: %w", err)

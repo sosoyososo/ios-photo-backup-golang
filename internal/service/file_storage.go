@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/ios-photo-backup/photo-backup-server/internal/config"
 )
@@ -77,6 +78,14 @@ func (fs *FileStorage) GetFileSize(filePath string) (int64, error) {
 		return 0, fmt.Errorf("failed to get file info: %w", err)
 	}
 	return info.Size(), nil
+}
+
+// SetFileTimes sets the access and modification times of a file
+func (fs *FileStorage) SetFileTimes(filePath string, atime, mtime time.Time) error {
+	if err := os.Chtimes(filePath, atime, mtime); err != nil {
+		return fmt.Errorf("failed to set file times: %w", err)
+	}
+	return nil
 }
 
 // CopyFile copies a file from src to dst
