@@ -1,4 +1,13 @@
-wget -O go1.24.0.linux-amd64.tar.gz https://go.dev/dl/go1.24.0.linux-amd64.tar.gz
+GO_TAR="go1.24.0.linux-amd64.tar.gz"
+
+# Check if Go tarball already exists
+if [ -f "$GO_TAR" ]; then
+    echo "Go tarball already exists, skipping download"
+else
+    echo "Go tarball not found, downloading..."
+    wget -O "$GO_TAR" "https://go.dev/dl/go1.24.0.linux-amd64.tar.gz"
+fi
+
 docker run --rm -v /share/Download/photobk:/app -w /app quay.io/pypa/manylinux2014_x86_64 bash -c '
   set -e
   tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
