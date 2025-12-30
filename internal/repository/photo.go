@@ -197,3 +197,15 @@ func (r *PhotoRepository) AddUploadedExtension(localID string, extension string)
 
 	return nil
 }
+
+// GetAll retrieves all photo records for the user
+func (r *PhotoRepository) GetAll() ([]models.Photo, error) {
+	if err := r.ensureTableExists(); err != nil {
+		return nil, err
+	}
+	var photos []models.Photo
+	if err := r.db.Table(r.tableName).Find(&photos).Error; err != nil {
+		return nil, fmt.Errorf("failed to get all photos: %w", err)
+	}
+	return photos, nil
+}
