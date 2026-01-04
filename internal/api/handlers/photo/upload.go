@@ -145,3 +145,78 @@ func UploadHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage
 		}
 	}
 }
+
+// UploadStreamHandlerWithDeps handles photo upload requests using pure streaming (no multipart parsing)
+func UploadStreamHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage *service.FileStorage, storageDir string, appLogger *logger.Logger) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get user ID from JWT middleware context
+		userID, ok := middleware.GetUserID(c)
+		if !ok {
+			appLogger.Warn("Photo upload stream request without valid user_id in context", logger.String("path", c.Request.URL.Path))
+			errors.Unauthorized(c, "Invalid token claims")
+			return
+		}
+
+		// Create PhotoRepository for this user
+		photoRepo := repository.NewPhotoRepository(db, userID)
+
+		// Create PhotoService for this user
+		photoService := service.NewPhotoService(photoRepo, naming, fileStorage, storageDir)
+
+		// Get parameters from query string
+		localID := c.Query("local_id")
+		fileType := c.Query("file_type")
+
+		if localID == "" {
+			appLogger.Warn("Photo upload stream missing local_id", logger.Uint("user_id", userID))
+			errors.BadRequest(c, "local_id is required", nil)
+			return
+		}
+
+		if fileType == "" {
+			appLogger.Warn("Photo upload stream missing file_type", logger.Uint("user_id", userID), logger.String("local_id", localID))
+			errors.BadRequest(c, "file_type is required", nil)
+			return
+		}
+
+		// Use file_type as the file extension
+		ext := strings.ToLower(fileType)
+
+		appLogger.Info("Streaming photo upload (raw body)",
+			logger.Uint("user_id", userID),
+			logger.String("local_id", localID),
+			logger.String("file_type", fileType),
+			logger.String("file_extension", ext))
+
+		// Upload photo directly from request body (pure streaming)
+		if err := photoService.UploadPhotoStream(userID, localID, ext, fileType, c.Request.Body); err != nil {
+			appLogger.Error("Photo stream upload failed",
+				logger.Uint("user_id", userID),
+				logger.String("local_id", localID),
+				logger.String("error", err.Error()))
+			errors.InternalError(c, err.Error(), nil)
+			return
+		}
+
+		appLogger.PhotoOperation("upload_stream", localID, localID, userID, true)
+
+		// Return success with filename
+		photo, err := photoRepo.FindByLocalID(localID)
+		if err == nil && photo != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"status":    "success",
+				"message":   "File uploaded (streamed)",
+				"local_id":  localID,
+				"filename":  photo.FileName + "." + ext,
+				"file_path": photo.FilePath + photo.FileName + "." + ext,
+			})
+		} else {
+			c.JSON(http.StatusOK, gin.H{
+				"status":   "success",
+				"message":  "File uploaded (streamed)",
+				"local_id": localID,
+				"filename": localID + "." + ext,
+			})
+		}
+	}
+}

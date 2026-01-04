@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"io"
 	"sort"
 	"time"
 
@@ -144,6 +145,43 @@ func (s *PhotoService) UploadPhoto(userID uint, localID, fileExtension, fileType
 
 	// Save file (always overwrites if exists)
 	if err := s.fileStorage.SaveFile(fullPath, fileData); err != nil {
+		return fmt.Errorf("failed to save file: %w", err)
+	}
+
+	// Set file timestamps using photo's creation time
+	if err := s.fileStorage.SetFileTimes(fullPath, photo.CreationTime, photo.CreationTime); err != nil {
+		return fmt.Errorf("failed to set file times: %w", err)
+	}
+
+	// Add extension to tracking list
+	if err := s.photoRepo.AddUploadedExtension(localID, fileExtension); err != nil {
+		return fmt.Errorf("failed to update extension list: %w", err)
+	}
+
+	// Update file count
+	if err := s.photoRepo.UpdateFileCount(localID, 1); err != nil {
+		return fmt.Errorf("failed to update file count: %w", err)
+	}
+
+	return nil
+}
+
+// UploadPhotoStream uploads a photo file using streaming (no memory buffering)
+func (s *PhotoService) UploadPhotoStream(userID uint, localID, fileExtension, fileType string, reader io.Reader) error {
+	// Find photo record
+	photo, err := s.photoRepo.FindByLocalID(localID)
+	if err != nil {
+		return fmt.Errorf("failed to find photo: %w", err)
+	}
+	if photo == nil {
+		return fmt.Errorf("photo not found")
+	}
+
+	// Build full file path with extension
+	fullPath := photo.FilePath + photo.FileName + "." + fileExtension
+
+	// Save file using streaming (always overwrites if exists)
+	if err := s.fileStorage.SaveFileStream(fullPath, reader); err != nil {
 		return fmt.Errorf("failed to save file: %w", err)
 	}
 

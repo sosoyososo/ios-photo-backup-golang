@@ -38,6 +38,29 @@ func (fs *FileStorage) SaveFile(filePath string, data []byte) error {
 	return nil
 }
 
+// SaveFileStream saves a file from an io.Reader (streaming)
+func (fs *FileStorage) SaveFileStream(filePath string, reader io.Reader) error {
+	// Ensure directory exists
+	dir := filepath.Dir(filePath)
+	if err := config.EnsureDir(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// Create file
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create file: %w", err)
+	}
+	defer dst.Close()
+
+	// Stream copy
+	if _, err := io.Copy(dst, reader); err != nil {
+		return fmt.Errorf("failed to stream file: %w", err)
+	}
+
+	return nil
+}
+
 // ReadFile reads a file from the specified path
 func (fs *FileStorage) ReadFile(filePath string) ([]byte, error) {
 	data, err := os.ReadFile(filePath)
