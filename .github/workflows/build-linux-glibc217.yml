@@ -28,9 +28,6 @@ jobs:
           options: |
             -v ${{ github.workspace }}:/app
             -w /app
-          env:
-            GOPROXY: https://goproxy.cn,direct
-            GOSUMDB: sum.golang.google.cn
           run: |
             set -e
 
@@ -42,6 +39,8 @@ jobs:
             # Setup Go
             tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
             export PATH=/usr/local/go/bin:$PATH
+            export GOPROXY=https://goproxy.cn,direct
+            export GOSUMDB=sum.golang.google.cn
 
             # Install ARM64 cross-compiler
             yum install -y gcc gcc-c++ aarch64-linux-gnu-gcc aarch64-linux-gnu-g++ && yum clean all
