@@ -13,38 +13,40 @@ jobs:
     permissions:
       contents: read
 
-    container:
-      image: quay.io/pypa/manylinux2014_x86_64
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download Go
-        run: |
-          if [ ! -f "${{ github.workspace }}/go1.24.0.linux-amd64.tar.gz" ]; then
-            wget -q -O ${{ github.workspace }}/go1.24.0.linux-amd64.tar.gz "https://go.dev/dl/go1.24.0.linux-amd64.tar.gz"
-          fi
-
-      - name: Setup Go
-        run: |
-          tar -C /usr/local -xzf ${{ github.workspace }}/go1.24.0.linux-amd64.tar.gz
-          echo "/usr/local/go/bin" >> $GITHUB_PATH
-
       - name: Build Linux binaries (glibc 2.17 compatible)
-        env:
-          GOPROXY: https://goproxy.cn,direct
-          GOSUMDB: sum.golang.google.cn
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: dummy
+          password: dummy
+        # Run build inside manylinux container using docker run
         run: |
-          set -e
-
-          # Build server (CGO enabled for SQLite)
-          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-server cmd/server/main.go
-          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-server-arm64 cmd/server/main.go
-
-          # Build CLI
-          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-cli cmd/cli/main.go
-          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-cli-arm64 cmd/cli/main.go
+          docker run --rm \
+            -v ${{ github.workspace }}:/app \
+            -w /app \
+            -e GOPROXY=https://goproxy.cn,direct \
+            -e GOSUMDB=sum.golang.google.cn \
+            quay.io/pypa/manylinux2014_x86_64 \
+            bash -c '
+              set -e
+              # Download Go if not exists
+              if [ ! -f /app/go1.24.0.linux-amd64.tar.gz ]; then
+                wget -q -O /app/go1.24.0.linux-amd64.tar.gz https://go.dev/dl/go1.24.0.linux-amd64.tar.gz
+              fi
+              # Setup Go
+              tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
+              export PATH=/usr/local/go/bin:$PATH
+              # Build server
+              CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-server cmd/server/main.go
+              CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-server-arm64 cmd/server/main.go
+              # Build CLI
+              CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-cli cmd/cli/main.go
+              CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-cli-arm64 cmd/cli/main.go
+            '
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
