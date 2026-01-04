@@ -26,8 +26,6 @@ jobs:
           docker run --rm \
             -v ${{ github.workspace }}:/app \
             -w /app \
-            -e GOPROXY=https://goproxy.cn,direct \
-            -e GOSUMDB=sum.golang.google.cn \
             quay.io/pypa/manylinux2014_x86_64 \
             bash -c '
               set -e
