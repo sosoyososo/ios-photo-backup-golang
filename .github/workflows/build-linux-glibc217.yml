@@ -1,0 +1,56 @@
+name: Build Linux (glibc 2.17+ compatible)
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Linux binaries (glibc 2.17 compatible)
+        uses: docker/run-action@v5
+        with:
+          image: quay.io/pypa/manylinux2014_x86_64
+          options: -v ${{ github.workspace }}:/app -w /app
+        run: |
+          set -e
+
+          # Download Go if not cached
+          if [ ! -f "/app/go1.24.0.linux-amd64.tar.gz" ]; then
+            wget -q -O /app/go1.24.0.linux-amd64.tar.gz "https://go.dev/dl/go1.24.0.linux-amd64.tar.gz"
+          fi
+
+          tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
+          export PATH=/usr/local/go/bin:$PATH
+          export GOPROXY=https://goproxy.cn,direct
+          export GOSUMDB=sum.golang.google.cn
+
+          # Build server (CGO enabled for SQLite)
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-server cmd/server/main.go
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-server-arm64 cmd/server/main.go
+
+          # Build CLI
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-cli cmd/cli/main.go
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-cli-arm64 cmd/cli/main.go
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: photo-backup-binaries-glibc217
+          path: |
+            photo-backup-server*
+            photo-backup-cli*
+          retention-days: 7
