@@ -17,33 +17,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.0'
 
-      - name: Build Linux binaries (glibc 2.17 compatible)
+      - name: Build Linux binaries (glibc 2.17+ compatible)
         run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/app \
-            -w /app \
-            -e GOPROXY=https://goproxy.cn,direct \
-            -e GOSUMDB=sum.golang.google.cn \
-            quay.io/pypa/manylinux2014_x86_64 \
-            bash -c '
-              set -e
-              # Download Go if not exists
-              if [ ! -f /app/go1.24.0.linux-amd64.tar.gz ]; then
-                wget -q -O /app/go1.24.0.linux-amd64.tar.gz https://go.dev/dl/go1.24.0.linux-amd64.tar.gz
-              fi
-              # Setup Go
-              tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
-              export PATH=/usr/local/go/bin:$PATH
-              # Build server
-              CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-server cmd/server/main.go
-              CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-server-arm64 cmd/server/main.go
-              # Build CLI
-              CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-cli cmd/cli/main.go
-              CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-cli-arm64 cmd/cli/main.go
-            '
+          # Build server
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-server cmd/server/main.go
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-server-arm64 cmd/server/main.go
+          # Build CLI
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-cli cmd/cli/main.go
+          CGO_ENABLED=1 GOOS=linux GOARCH=arm64 go build -o photo-backup-cli-arm64 cmd/cli/main.go
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
