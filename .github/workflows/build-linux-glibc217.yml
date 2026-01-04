@@ -39,20 +39,11 @@ jobs:
               tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
               export PATH=/usr/local/go/bin:$PATH
 
-              # Install ARM64 cross-compiler
-              yum install -y gcc gcc-c++ aarch64-linux-gnu-gcc aarch64-linux-gnu-g++ && yum clean all
-
               # Build server (amd64)
               CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-server cmd/server/main.go
 
-              # Build server (arm64)
-              CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc GOOS=linux GOARCH=arm64 go build -o photo-backup-server-arm64 cmd/server/main.go
-
               # Build CLI (amd64)
               CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-cli cmd/cli/main.go
-
-              # Build CLI (arm64)
-              CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc GOOS=linux GOARCH=arm64 go build -o photo-backup-cli-arm64 cmd/cli/main.go
             '
 
       - name: Upload build artifacts
