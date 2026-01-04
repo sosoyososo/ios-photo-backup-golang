@@ -13,30 +13,30 @@ jobs:
     permissions:
       contents: read
 
+    container:
+      image: quay.io/pypa/manylinux2014_x86_64
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build Linux binaries (glibc 2.17 compatible)
-        uses: docker/run-action@v5
-        with:
-          image: quay.io/pypa/manylinux2014_x86_64
-          options: -v ${{ github.workspace }}:/app -w /app
+      - name: Download Go
         run: |
-          set -e
-
-          # Download Go if not cached
-          if [ ! -f "/app/go1.24.0.linux-amd64.tar.gz" ]; then
-            wget -q -O /app/go1.24.0.linux-amd64.tar.gz "https://go.dev/dl/go1.24.0.linux-amd64.tar.gz"
+          if [ ! -f "${{ github.workspace }}/go1.24.0.linux-amd64.tar.gz" ]; then
+            wget -q -O ${{ github.workspace }}/go1.24.0.linux-amd64.tar.gz "https://go.dev/dl/go1.24.0.linux-amd64.tar.gz"
           fi
 
-          tar -C /usr/local -xzf /app/go1.24.0.linux-amd64.tar.gz
-          export PATH=/usr/local/go/bin:$PATH
-          export GOPROXY=https://goproxy.cn,direct
-          export GOSUMDB=sum.golang.google.cn
+      - name: Setup Go
+        run: |
+          tar -C /usr/local -xzf ${{ github.workspace }}/go1.24.0.linux-amd64.tar.gz
+          echo "/usr/local/go/bin" >> $GITHUB_PATH
+
+      - name: Build Linux binaries (glibc 2.17 compatible)
+        env:
+          GOPROXY: https://goproxy.cn,direct
+          GOSUMDB: sum.golang.google.cn
+        run: |
+          set -e
 
           # Build server (CGO enabled for SQLite)
           CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o photo-backup-server cmd/server/main.go
