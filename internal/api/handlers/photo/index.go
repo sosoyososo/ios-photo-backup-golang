@@ -7,45 +7,22 @@ import (
 	"gorm.io/gorm"
 
 	"github.com/ios-photo-backup/photo-backup-server/internal/api/errors"
+	"github.com/ios-photo-backup/photo-backup-server/internal/api/middleware"
 	"github.com/ios-photo-backup/photo-backup-server/internal/logger"
 	"github.com/ios-photo-backup/photo-backup-server/internal/repository"
 	"github.com/ios-photo-backup/photo-backup-server/internal/service"
 )
 
 // IndexHandlerWithDeps handles photo indexing requests with dependency injection
-func IndexHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage *service.FileStorage, storageDir string, tokenService *service.TokenService, appLogger *logger.Logger) gin.HandlerFunc {
+func IndexHandlerWithDeps(db *gorm.DB, naming *service.PhotoNaming, fileStorage *service.FileStorage, storageDir string, appLogger *logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get token from context
-		token, exists := c.Get("token")
-		if !exists {
-			appLogger.Info("Photo index request without token", logger.String("path", c.Request.URL.Path))
-			errors.Unauthorized(c, "Token not found")
-			return
-		}
-
-		tokenString, ok := token.(string)
+		// Get user ID from JWT middleware context
+		userID, ok := middleware.GetUserID(c)
 		if !ok {
-			appLogger.Info("Photo index request with invalid token format", logger.String("path", c.Request.URL.Path))
-			errors.Unauthorized(c, "Invalid token format")
-			return
-		}
-
-		// Validate token to get claims
-		claims, err := tokenService.ValidateToken(tokenString)
-		if err != nil {
-			appLogger.Warn("Token validation failed", logger.String("error", err.Error()))
-			errors.Unauthorized(c, err.Error())
-			return
-		}
-
-		// Extract user ID from claims
-		userIDFloat, ok := claims["user_id"].(float64)
-		if !ok {
-			appLogger.Warn("Invalid token claims", logger.String("token", tokenString))
+			appLogger.Warn("Photo index request without valid user_id in context", logger.String("path", c.Request.URL.Path))
 			errors.Unauthorized(c, "Invalid token claims")
 			return
 		}
-		userID := uint(userIDFloat)
 
 		// Create PhotoRepository for this user
 		photoRepo := repository.NewPhotoRepository(db, userID)

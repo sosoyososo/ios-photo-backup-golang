@@ -54,16 +54,16 @@ func SetupRoutes(db *gorm.DB, cfg *config.Config, appLogger *logger.Logger) *gin
 
 	// Protected routes (authentication required)
 	protected := router.Group("/")
-	protected.Use(middleware.AuthMiddleware())
+	protected.Use(middleware.JWTMiddleware(tokenService, appLogger))
 	{
 		// Add refresh and status endpoints
 		protected.POST("/refresh", auth.RefreshHandler(tokenService, appLogger))
-		protected.GET("/status", user.StatusHandler(tokenService, appLogger))
+		protected.GET("/status", user.StatusHandler(appLogger))
 
-		// Add photo endpoints with token validation
+		// Add photo endpoints
 		// PhotoRepository will be created per-request with user ID from JWT
-		protected.POST("/photos/index", photo.IndexHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, tokenService, appLogger))
-		protected.POST("/photos/upload", photo.UploadHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, tokenService, appLogger))
+		protected.POST("/photos/index", photo.IndexHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, appLogger))
+		protected.POST("/photos/upload", photo.UploadHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, appLogger))
 	}
 
 	// Add a simple health check endpoint

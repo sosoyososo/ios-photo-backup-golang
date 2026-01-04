@@ -5,38 +5,38 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/ios-photo-backup/photo-backup-server/internal/api/errors"
+	"github.com/ios-photo-backup/photo-backup-server/internal/api/middleware"
 	"github.com/ios-photo-backup/photo-backup-server/internal/logger"
-	"github.com/ios-photo-backup/photo-backup-server/internal/service"
 )
 
+// StatusResponse represents status check response
+type StatusResponse struct {
+	Status   string `json:"status"`
+	UserID   uint   `json:"user_id"`
+	Username string `json:"username"`
+}
+
 // StatusHandler handles status check requests
-func StatusHandler(tokenService *service.TokenService, appLogger *logger.Logger) gin.HandlerFunc {
+func StatusHandler(appLogger *logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get token from context (set by AuthMiddleware)
-		token, exists := c.Get("token")
-		if !exists {
-			appLogger.Info("Status check without token")
-			errors.Unauthorized(c, "Token not found")
-			return
-		}
-
-		tokenString, ok := token.(string)
+		// Get user info from JWT middleware context
+		userID, ok := middleware.GetUserID(c)
 		if !ok {
-			appLogger.Info("Status check with invalid token format")
-			errors.Unauthorized(c, "Invalid token format")
+			appLogger.Warn("Status check without valid user_id in context")
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "unauthorized",
+				"message": "Invalid token claims",
+			})
 			return
 		}
 
-		// Check status
-		resp, err := tokenService.Status(tokenString)
-		if err != nil {
-			appLogger.Warn("Status check failed", logger.String("error", err.Error()))
-			errors.Unauthorized(c, err.Error())
-			return
-		}
+		username, _ := middleware.GetUsername(c)
 
 		// Return success
-		c.JSON(http.StatusOK, resp)
+		c.JSON(http.StatusOK, StatusResponse{
+			Status:   "online",
+			UserID:   userID,
+			Username: username,
+		})
 	}
 }
