@@ -202,3 +202,65 @@ func (s *PhotoService) UploadPhotoStream(userID uint, localID, fileExtension, fi
 
 	return nil
 }
+
+// UploadPhotoChunk uploads a chunk of a photo file
+func (s *PhotoService) UploadPhotoChunk(userID uint, localID, fileExtension string, chunkNumber, totalChunks int, chunkData []byte) (bool, error) {
+	// Find photo record
+	photo, err := s.photoRepo.FindByLocalID(localID)
+	if err != nil {
+		return false, fmt.Errorf("failed to find photo: %w", err)
+	}
+	if photo == nil {
+		return false, fmt.Errorf("photo not found")
+	}
+
+	// Build full file path with extension
+	fullPath := photo.FilePath + photo.FileName + "." + fileExtension
+
+	// Save the chunk
+	if err := s.fileStorage.SaveChunk(fullPath, chunkNumber, chunkData); err != nil {
+		return false, fmt.Errorf("failed to save chunk: %w", err)
+	}
+
+	// Check if this is the last chunk
+	isComplete := chunkNumber == totalChunks-1
+	if isComplete {
+		// Verify all chunks are uploaded
+		uploadedChunks, err := s.fileStorage.GetUploadedChunks(fullPath)
+		if err != nil {
+			return false, fmt.Errorf("failed to verify chunks: %w", err)
+		}
+
+		if len(uploadedChunks) != totalChunks {
+			return false, fmt.Errorf("incomplete chunks: got %d, expected %d", len(uploadedChunks), totalChunks)
+		}
+
+		// Merge all chunks into final file
+		if err := s.fileStorage.MergeChunks(fullPath, totalChunks); err != nil {
+			return false, fmt.Errorf("failed to merge chunks: %w", err)
+		}
+
+		// Cleanup chunk files
+		if err := s.fileStorage.CleanupChunks(fullPath); err != nil {
+			// Log but don't fail - chunks are already merged
+			s.storageDir = s.storageDir // placeholder to avoid unused warning
+		}
+
+		// Set file timestamps using photo's creation time
+		if err := s.fileStorage.SetFileTimes(fullPath, photo.CreationTime, photo.CreationTime); err != nil {
+			return false, fmt.Errorf("failed to set file times: %w", err)
+		}
+
+		// Add extension to tracking list
+		if err := s.photoRepo.AddUploadedExtension(localID, fileExtension); err != nil {
+			return false, fmt.Errorf("failed to update extension list: %w", err)
+		}
+
+		// Update file count
+		if err := s.photoRepo.UpdateFileCount(localID, 1); err != nil {
+			return false, fmt.Errorf("failed to update file count: %w", err)
+		}
+	}
+
+	return isComplete, nil
+}

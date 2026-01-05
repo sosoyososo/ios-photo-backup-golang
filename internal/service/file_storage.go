@@ -137,3 +137,102 @@ func (fs *FileStorage) CopyFile(src, dst string) error {
 
 	return nil
 }
+
+// GetChunkDir returns the temporary directory for storing chunks
+func (fs *FileStorage) GetChunkDir(filePath string) string {
+	return filePath + ".chunks"
+}
+
+// GetChunkPath returns the path for a specific chunk
+func (fs *FileStorage) GetChunkPath(filePath string, chunkNumber int) string {
+	chunkDir := fs.GetChunkDir(filePath)
+	return filepath.Join(chunkDir, fmt.Sprintf("chunk_%03d", chunkNumber))
+}
+
+// SaveChunk saves a single chunk to the chunk directory
+func (fs *FileStorage) SaveChunk(filePath string, chunkNumber int, data []byte) error {
+	chunkDir := fs.GetChunkDir(filePath)
+
+	// Ensure chunk directory exists
+	if err := config.EnsureDir(chunkDir, 0755); err != nil {
+		return fmt.Errorf("failed to create chunk directory: %w", err)
+	}
+
+	chunkPath := fs.GetChunkPath(filePath, chunkNumber)
+
+	// Write chunk file
+	if err := os.WriteFile(chunkPath, data, 0644); err != nil {
+		return fmt.Errorf("failed to write chunk %d: %w", chunkNumber, err)
+	}
+
+	return nil
+}
+
+// MergeChunks merges all chunks into the final file
+func (fs *FileStorage) MergeChunks(filePath string, totalChunks int) error {
+	// Ensure destination directory exists
+	dir := filepath.Dir(filePath)
+	if err := config.EnsureDir(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	// Create destination file
+	dst, err := os.Create(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer dst.Close()
+
+	// Merge chunks in order
+	for i := 0; i < totalChunks; i++ {
+		chunkPath := fs.GetChunkPath(filePath, i)
+
+		chunkData, err := os.ReadFile(chunkPath)
+		if err != nil {
+			return fmt.Errorf("failed to read chunk %d: %w", i, err)
+		}
+
+		if _, err := dst.Write(chunkData); err != nil {
+			return fmt.Errorf("failed to write chunk %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// CleanupChunks removes all chunk files for a given file path
+func (fs *FileStorage) CleanupChunks(filePath string) error {
+	chunkDir := fs.GetChunkDir(filePath)
+
+	if err := os.RemoveAll(chunkDir); err != nil {
+		return fmt.Errorf("failed to cleanup chunks: %w", err)
+	}
+
+	return nil
+}
+
+// GetUploadedChunks returns the list of uploaded chunk numbers
+func (fs *FileStorage) GetUploadedChunks(filePath string) ([]int, error) {
+	chunkDir := fs.GetChunkDir(filePath)
+
+	entries, err := os.ReadDir(chunkDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []int{}, nil
+		}
+		return nil, fmt.Errorf("failed to read chunk directory: %w", err)
+	}
+
+	var chunks []int
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		var chunkNum int
+		if _, err := fmt.Sscanf(entry.Name(), "chunk_%d", &chunkNum); err == nil {
+			chunks = append(chunks, chunkNum)
+		}
+	}
+
+	return chunks, nil
+}

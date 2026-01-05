@@ -65,6 +65,7 @@ func SetupRoutes(db *gorm.DB, cfg *config.Config, appLogger *logger.Logger) *gin
 		protected.POST("/photos/index", photo.IndexHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, appLogger))
 		protected.POST("/photos/upload", photo.UploadHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, appLogger))
 		protected.POST("/photos/upload/stream", photo.UploadStreamHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, appLogger))
+		protected.POST("/photos/upload/chunk", photo.UploadChunkHandlerWithDeps(db, naming, fileStorage, cfg.StorageDir, appLogger))
 	}
 
 	// Add a simple health check endpoint
